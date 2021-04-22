@@ -1,6 +1,9 @@
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+
 // Run dotenv
 require('dotenv').config();
 const config = require('./config.json');
+const credentials = require('./credentials.json');
 const prefix = config.prefix;
 
 const Discord = require('discord.js');
@@ -8,6 +11,7 @@ const client = new Discord.Client();
 
 var loggingInfo = false;
 var loggingVerbose = false;
+var weebFilter = false;
 
 const errorEmojis = new Map([
 		[0, '<:trigger_matt:570408483388653582>'],
@@ -29,12 +33,18 @@ client.once('ready', () => {
     });
 });
 
-client.login(config.token);
+client.login(credentials.token);
 
 client.on('message', message => {
 
 	if (message.content === '<:klog:731353873251565588>' && message.author.id === '108368315243614208'/*gypsy*/) {
 		klogReact(message);
+	}
+
+	if (weebFilter && message.author.id === '116275390695079945'/*nadeko*/ && message.embeds[0].description.startsWith('[link](https://safebooru.org/')
+			&& message.channel.id != '498964121430130708'/*nippon*/) {
+		errorEmoji(message);
+		message.delete();
 	}
 
 	if (!message.content.startsWith(prefix) || message.author.bot) return;
@@ -60,10 +70,10 @@ client.on('message', message => {
 	if (message.author.id === '128668564617035776'/*pico*/){
 		if(command === 'logging'){
 			changeLoggingMode(args);
+		} else if (command === 'weebfilter'){
+			weebFilter = !weebFilter;
 		}
-		if(command === 'r'){
-			randomTest(message);
-		}
+
 	}
 
 });
@@ -192,10 +202,6 @@ function getRandomKey(collection) {
 		let keys = Array.from(collection.keys());
 		return keys[Math.floor(Math.random() * keys.length)];
 }
-// function getFirstKey(collection) {
-// 		let keys = Array.from(collection.keys());
-// 		return keys[Math.floor(Math.random() * keys.length)];
-// }
 
 function errorEmoji(message){
 	message.channel.send(errorEmojis.get(getRandomKey(errorEmojis)));
@@ -214,3 +220,13 @@ function logIt(s, b){
 		console.log(s);
 	}
 }
+
+/*
+//repl.it hosting stuff to ping
+const http = require('http');
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('ok');
+});
+server.listen(3000);
+*/
