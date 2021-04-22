@@ -37,6 +37,10 @@ client.login(credentials.token);
 
 client.on('message', message => {
 
+	if(message.content.length > 300){
+		message.channel.send(`Hahaha, what a story, ${message.author.username}.`)
+	}
+
 	if (message.content === '<:klog:731353873251565588>' && message.author.id === '108368315243614208'/*gypsy*/) {
 		klogReact(message);
 	}
