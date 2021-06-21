@@ -19,7 +19,17 @@ const errorEmojis = new Map([
 		[2, '<:handless_think:540988467392544788>'],
 		[3, '<:pingd:572942073200640020>'],
 		[4, '<:bird:540988467069583382>']
+
 	]);
+
+const Sequelize = require('sequelize');
+const sqlize = new Sequelize('database', 'username', 'password', {
+	host: 'localhost',
+	dialect: 'sqlite',
+	logging: false,
+	storage: 'database.sqlite',
+});
+const Users=require('./models/User')(sqlize, Sequelize.DataTypes);
 
 client.once('ready', () => {
 	console.log(`${client.user.tag} - meme cannons primed`);
@@ -35,7 +45,7 @@ client.once('ready', () => {
 
 client.login(credentials.token);
 
-client.on('message', message => {
+client.on('message', async message => {
 
 	if(message.content.length > 300){
 		message.channel.send(`Hahaha, what a story, ${message.author.username}.`)
@@ -45,13 +55,20 @@ client.on('message', message => {
 		klogReact(message);
 	}
 
-	if (weebFilter && message.author.id === '116275390695079945'/*nadeko*/ && message.embeds[0].description.startsWith('[link](https://safebooru.org/')
+	if (weebFilter 
+			&& message.author.id === '116275390695079945'/*nadeko*/ 
+			&&  message.embeds != null && message.embeds[0].description.startsWith('[link](https://safebooru.org/') 
 			&& message.channel.id != '498964121430130708'/*nippon*/) {
 		errorEmoji(message);
 		message.delete();
 	}
 
-	if (!message.content.startsWith(prefix) || message.author.bot) return;
+	if(message.author.bot) return;
+
+	user = await Users.findOne({where:{userId: message.author.id}});
+	incrementBalance(message, user);
+
+	if (!message.content.startsWith(prefix)) return;
 
 	logIt(message, loggingVerbose);
 
@@ -68,6 +85,10 @@ client.on('message', message => {
 		room(message);
 	} else if (command === 'pick'){
 		pickRandom(message, args);
+	} else if (command === 'balance'){
+		getBalance(message, user);
+	} else if (command === 'leaderboard') {
+		showLeaderboard(message);
 	}
 
 	//personal commands
@@ -133,7 +154,7 @@ function goli(message) {
 }
 
 function help(message) {
-	message.channel.send(`${prefix}room\n${prefix}pick <2+ args>`);
+	message.channel.send(`${prefix}room\n${prefix}pick <2+ args>\n${prefix}balance\n${prefix}leaderboard`);
 }
 
 function quote(message, command) {
@@ -200,6 +221,61 @@ function quote(message, command) {
 function klogReact(message) {
 		const reactionEmoji = message.guild.emojis.cache.find(emoji => emoji.name === 'klog');
 		message.react(reactionEmoji);
+}
+
+async function incrementBalance(message, user) {
+  if(user==null){
+    Users.upsert({userId:message.author.id,
+    balance:0,
+    smites:0
+    })
+    user = await Users.findOne({where:{userId: message.author.id}});
+  }
+  if(message.content.toLowerCase().includes('smite')) {
+    newBalance = user.balance-10;
+    logIt(`smited ${message.author.username}`, loggingDebug);
+    logIt(user, loggingDebug);
+    logIt(newBalance, loggingDebug);
+    Users.upsert({userId:message.author.id, balance:newBalance, smites: user.smites+1})
+  } else {
+    newBalance=1+user.balance;
+    Users.upsert({userId:message.author.id, balance:newBalance})
+  }
+  Users.upsert({userId:message.author.id, username:message.author.username});
+}
+function getBalance(message, user) {
+  embed = new Discord.MessageEmbed()
+					.setColor('#0099ff')
+					.setTitle(`You have ${user.balance} Goslings available.` )
+					.setAuthor(message.author.username, message.author.avatarURL())
+					;
+
+  message.channel.send(embed)
+}
+async function showLeaderboard(message) {
+  embed = new Discord.MessageEmbed()
+					.setColor('#0099ff')
+					.setTitle(`Top Gosling Posters - All Time` )
+					;
+
+  userList = await Users.findAll({order:sqlize.literal('balance desc')});
+  description = "";
+
+    userList.forEach( 
+      (user) => { 
+        test = user.username
+        if(typeof(test) !== 'undefined' && test !== null){
+          padSize = 30;
+          paddedUsername = test.padEnd(test.length+5, ' ').padEnd(padSize, '-')
+          paddedBalance = user.balance.toString().padStart(5, ' ')
+          description+=`\`${paddedUsername}${paddedBalance}\`\n`
+        }
+      }
+    );
+
+  embed.setDescription(description);
+
+  message.channel.send(embed)
 }
 
 function getRandomKey(collection) {
