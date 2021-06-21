@@ -10,6 +10,7 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 
 var loggingInfo = false;
+var loggingDebug = true;
 var loggingVerbose = false;
 var weebFilter = false;
 
@@ -288,9 +289,11 @@ function errorEmoji(message){
 }
 function changeLoggingMode(args) {
 	loggingInfo = args[0]=='info';
+	loggingDebug = args[0]=='debug';
 	loggingVerbose = args[0]=='verbose';
 	if(args[0]=='all'){
 		loggingInfo=true;
+		loggingDebug=true;
 		loggingVerbose=true;
 	}
 	logIt(`Logging set to ${args[0]}`, loggingInfo);
