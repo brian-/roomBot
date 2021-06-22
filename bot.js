@@ -34,11 +34,11 @@ const Users=require('./models/User')(sqlize, Sequelize.DataTypes);
 
 client.once('ready', () => {
 	console.log(`${client.user.tag} - meme cannons primed`);
-	//TODO:fix the user presence
+	
 	client.user.setPresence({
         status: "online",  //You can show online, idle....
-        game: {
-            name: `${prefix}help`,  //The message shown
+        activity: {
+            name: `The Room`,  //The message shown
             type: "WATCHING" //PLAYING: WATCHING: LISTENING: STREAMING:
         }
     });
